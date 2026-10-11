@@ -64,6 +64,8 @@ entities:
 | `button_action` | object | Action config | Button action. Set to an action config. If not set the default action will be `input_button.press` for the config entity. |
 | `color` | string | `state` (default)<br>`none`<br>color token<br>CSS color | drives the state color of the icon. By default, the color is based on the `state`, `domain`, and `device_class` of the entity. To take default color, set to `none`. It accepts `state`, `none`, a Home Assistant [color token](https://www.home-assistant.io/dashboards/tile/#available-colors), or a CSS color. |
 | `color_inactive` | boolean | `true` / `false` | If this is set to `true` and `state` is not active, `color` is set by overriding `--state-icon-color` to `color`. This is required since Home Assistant 2026.8.0 where `<state-badge>` uses `color` only when active. |
+| `primary_color` | string | color token<br>CSS color | Sets the entity name color. Supports Home Assistant color tokens, CSS colors, and Nunjucks templates. Omitted, empty, whitespace-only, or `none` uses the theme default. Applies regardless of entity activity; `state` coloring is not supported. The state text on the right is unaffected. |
+| `secondary_color` | string | color token<br>CSS color | Sets the secondary line color for both text and secondary lists. Accepts the same values as `primary_color`; defaults to the theme secondary text color independently of `primary_color`. |
 | `tap_action`<br>`hold_action`<br>`double_tap_action` | object | Action config | Primary actions. See [Actions](#actions). |
 | `action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action`. See [Actions](#actions) |
 | `secondary_action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action` when the action is executed on the `secondary` area. This allows the primary actions (e.g. `more-info`, `toggle`) to target the main entity while the `secondary` area targets a different entity. If not set then will default to `secondary_entity` if set, otherwise `entity`. See [Actions](#actions) |
@@ -71,6 +73,18 @@ entities:
 | `icon_action_entity` | string | - | If set, overrides the entity id used for `icon_tap_action`, `icon_hold_action` and `icon_double_tap_action`. See [Actions](#actions) |
 | `state_tap_action`<br>`state_hold_action`<br>`state_double_tap_action` | object | Action config | State actions. See [Actions](#actions). |
 | `state_action_entity` | string | - | If set, overrides the entity id used for `state_tap_action`, `state_hold_action` and `state_double_tap_action`. See [Actions](#actions) |
+
+For example, use a static primary color and a secondary color based on the entity state:
+
+```yaml
+type: custom:nunjucks-entity-row
+entity: light.bed_light
+primary_color: "#2196f3"
+secondary: "{{ states(config.entity) }}"
+secondary_color: "{{ 'amber' if is_state(config.entity, 'on') else 'none' }}"
+```
+
+CSS values such as `rgb(255, 128, 0)` and `var(--accent-color)` are also supported.
 
 ## Templates and migration
 

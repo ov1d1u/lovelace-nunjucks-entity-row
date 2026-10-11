@@ -1,5 +1,20 @@
 import { test, expect } from '@playwright/test';
 
+async function textColors(page) {
+  return page.evaluate(() => {
+    const root = window.row.shadowRoot;
+    const color = (selector) => getComputedStyle(root.querySelector(selector)).color;
+    return {
+      primary: color('.info'), secondary: color('.secondary'), state: color('.state'),
+      primaryOverride: root.querySelector('.info').style.color,
+      secondaryOverride: root.querySelector('.secondary').style.color,
+      iconColor: root.querySelector('state-badge').color,
+      iconStyle: root.querySelector('state-badge').getAttribute('style'),
+      secondaryDisplay: root.querySelector('state-display') ? color('state-display') : null,
+    };
+  });
+}
+
 test.beforeEach(async ({ page }) => {
   await page.goto('/');
   await page.evaluate(async () => {
@@ -141,4 +156,69 @@ test('minute refresh stops on disconnect, restarts once and is absent for static
   expect(await page.evaluate(() => window.row.config.name !== window.reconnectedName && window.row._refreshTimer !== undefined)).toBe(true);
   await page.evaluate(async () => { window.row.setConfig({ name: 'Static' }); await window.row.updateComplete; });
   expect(await page.evaluate(() => window.row._refreshTimer === undefined)).toBe(true);
+});
+
+test('text colors resolve tokens and CSS independently without changing icon or state', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary: 'Details', color: 'blue' });
+    row.style.cssText = 'color: rgb(10, 20, 30); --secondary-text-color: rgb(40, 50, 60); --amber-color: rgb(255, 193, 7); --accent-color: rgb(0, 128, 128)';
+  });
+  const defaults = await textColors(page);
+  expect(defaults).toMatchObject({ primary: 'rgb(10, 20, 30)', secondary: 'rgb(40, 50, 60)', state: 'rgb(10, 20, 30)', iconColor: 'blue' });
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', secondary: 'Details', color: 'blue', primary_color: ' amber ' });
+    await window.row.updateComplete;
+  });
+  expect(await textColors(page)).toEqual({ ...defaults, primary: 'rgb(255, 193, 7)', primaryOverride: 'var(--amber-color)' });
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', secondary: ['name'], color: 'blue', primary_color: '#123456', secondary_color: 'var(--accent-color)' });
+    await window.row.updateComplete;
+  });
+  expect(await textColors(page)).toMatchObject({
+    primary: 'rgb(18, 52, 86)', secondary: 'rgb(0, 128, 128)', secondaryDisplay: 'rgb(0, 128, 128)',
+    state: defaults.state, iconColor: defaults.iconColor, iconStyle: defaults.iconStyle,
+  });
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', secondary: 'Details', secondary_color: 'rgb(12, 34, 56)' });
+    await window.row.updateComplete;
+  });
+  expect(await textColors(page)).toMatchObject({ primary: defaults.primary, primaryOverride: '', secondary: 'rgb(12, 34, 56)' });
+});
+
+test('default text color values clear previous overrides', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary: 'Details' });
+    row.style.cssText = 'color: rgb(10, 20, 30); --secondary-text-color: rgb(40, 50, 60)';
+  });
+  const defaults = await textColors(page);
+  for (const value of [undefined, '', '   ', 'none']) {
+    await page.evaluate(async (value) => {
+      window.row.setConfig({ entity: 'light.test', secondary: 'Details', primary_color: 'pink', secondary_color: '#abcdef' });
+      await window.row.updateComplete;
+      window.row.setConfig({ entity: 'light.test', secondary: 'Details', primary_color: value, secondary_color: value });
+      await window.row.updateComplete;
+    }, value);
+    expect(await textColors(page)).toEqual(defaults);
+  }
+});
+
+test('color-only templates update on hass changes and minute refreshes', async ({ page }) => {
+  await page.clock.install();
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary: 'Details',
+      primary_color: "{{ '#123456' if is_state(config.entity, 'off') else 'none' }}",
+      secondary_color: "{{ '#abcdef' if is_state(config.entity, 'off') else '' }}" });
+    row.style.cssText = 'color: rgb(10, 20, 30); --secondary-text-color: rgb(40, 50, 60)';
+  });
+  expect(await page.evaluate(() => window.row._refreshTimer !== undefined)).toBe(true);
+  expect(await textColors(page)).toMatchObject({ primary: 'rgb(18, 52, 86)', secondary: 'rgb(171, 205, 239)' });
+  await page.evaluate(async () => { window.row.hass = window.makeHass('on'); await window.row.updateComplete; });
+  expect(await textColors(page)).toMatchObject({ primary: 'rgb(10, 20, 30)', secondary: 'rgb(40, 50, 60)', primaryOverride: '', secondaryOverride: '' });
+
+  // Mutate the fixture without scheduling a Lit update; only the refresh timer can pick this up.
+  await page.evaluate(() => { window.row.hass.states['light.test'].state = 'off'; });
+  await page.clock.fastForward(60_000);
+  expect(await textColors(page)).toMatchObject({ primary: 'rgb(18, 52, 86)', secondary: 'rgb(171, 205, 239)' });
+  expect(await page.evaluate(() => ['primary_color', 'secondary_color'].every((key) =>
+    window.templates.hasConfigurationTemplates({ [key]: '{{ now() }}' })))).toBe(true);
 });

@@ -1,11 +1,17 @@
 import { LitElement, html, css, PropertyValues } from "lit";
 import { property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
+import { styleMap } from "lit/directives/style-map.js";
 import { bindActionHandler, buttonAction } from "./helpers/action";
 import pjson from "../package.json";
 import { renderConfiguration, hasConfigurationTemplates } from "./helpers/templates";
 import { stateActive } from "./helpers/common/entity/state_active";
 import { computeCssColor } from "./helpers/common/entity/compute_color";
+
+function textColor(value: unknown): string | undefined {
+  const color = typeof value === "string" ? value.trim() : "";
+  return color && color !== "none" ? computeCssColor(color) : undefined;
+}
 
 class NunjucksEntityRow extends LitElement {
   @property() _config;
@@ -269,10 +275,11 @@ class NunjucksEntityRow extends LitElement {
         ></state-badge>
         <div
           class=${classMap({ info: true, pointer: has_action })}
+          style=${styleMap({ color: textColor(this.config.primary_color) })}
           @action="${this._infoActionHandler}"
         >
           ${name}
-          <div class="secondary">
+          <div class="secondary" style=${styleMap({ color: textColor(this.config.secondary_color) })}>
             ${secondaryIsText
               ? this.config.secondary
               : this.config.secondary !== undefined
@@ -325,6 +332,9 @@ class NunjucksEntityRow extends LitElement {
         }
         .state {
           text-align: right;
+        }
+        .secondary {
+          color: var(--secondary-text-color);
         }
         .state > ha-button {
           margin-right: -0.57em;

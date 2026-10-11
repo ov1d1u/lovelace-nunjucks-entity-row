@@ -1,3 +1,10 @@
+## [4.1.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.0.0...v4.1.0) (2026-10-11)
+
+
+### ⭐ New Features
+
+* add primary and secondary text colors ([191eea7](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/191eea7640bee2a76cffd9b009e93ac92199dae5))
+
 ## [4.0.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/releases/tag/v4.0.0) (2026-10-11)
 
 ## Breaking changes

@@ -1,3 +1,34 @@
+## [4.0.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/releases/tag/v4.0.0) (2026-10-11)
+
+## Breaking changes
+
+This release renames the project to **lovelace-nunjucks-entity-row** and replaces Home Assistant server-side template rendering with frontend rendering through ha-nunjucks.
+
+### Migration
+
+- Replace the dashboard resource with `nunjucks-entity-row.js` and change row types from `custom:template-entity-row` to `custom:nunjucks-entity-row`. The old custom element is no longer registered.
+- Use standard Nunjucks delimiters: `{{ expression }}`, `{% block %}`, and `{# comment #}`. `nested_templates: true` and alternate bracket delimiters are no longer supported.
+- Templates receive the original `config`, `hass`, and native ha-nunjucks functions and filters. The `user`, `browser`, and `hash` shortcuts have been removed; use `hass.user.name` for the current user.
+- Replace `_(translation.key)` text with `{{ hass.localize('translation.key') }}`.
+- Whole-field templates producing action objects, flexible names, secondary lists, or time formats must return valid JSON. Python dictionary/list representations are not accepted. Templates can also be written inside YAML objects and lists.
+- Backend-only Jinja features and server data are unavailable. See the [migration documentation](https://github.com/ov1d1u/lovelace-nunjucks-entity-row#templates-and-migration).
+
+## Improvements
+
+- Recursively render nested configuration values without mutating the source configuration.
+- Refresh templates on Home Assistant updates and every 60 seconds while connected.
+- Retain the last valid option value after a template error and retry on subsequent updates.
+- Clean up refresh timers on disconnect and restore them on reconnect.
+- Add frontend browser tests and CI coverage for rendering, actions, visibility, error recovery, and lifecycle behavior.
+
+## Validation
+
+Clean dependency installation, production build, and all five frontend browser tests passed. Home Assistant visual tests could not run because Docker was unavailable. Type checking reports existing missing `color-name` and `parse-duration` dependencies in unchanged helpers.
+
+## Installation
+
+Download `nunjucks-entity-row.js` from this release and register it as a JavaScript module resource, or install this repository through HACS.
+
 ### [3.0.2](https://github.com/Lint-Free-Technology/lovelace-template-entity-row/compare/v3.0.1...v3.0.2) (2026-10-06)
 
 

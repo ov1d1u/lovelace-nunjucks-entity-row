@@ -19,7 +19,7 @@ setup:
     settle_ms: 50
 
 dashboard:
-  title: template-entity-row
+  title: nunjucks-entity-row
   views:
     - path: readme-example
       title: README Example
@@ -28,7 +28,7 @@ dashboard:
           title: Quick Start
           entities:
             - light.bed_light
-            - type: custom:template-entity-row
+            - type: custom:nunjucks-entity-row
               icon: mdi:lamp
               name: "The light is {{states('light.bed_light')}} but nobody's"
               state: "{% if is_state('input_boolean.test_boolean', 'on')%} home {% else %} away {% endif %}"
@@ -36,10 +36,10 @@ dashboard:
               active: "{{ is_state('light.bed_light', 'on') }}"
             - entity: input_boolean.test_boolean
               name: A toggle
-            - type: custom:template-entity-row
+            - type: custom:nunjucks-entity-row
               icon: "{% if is_state('input_boolean.test_boolean', 'on')%} mdi:check-circle-outline {% else %} mdi:close-circle-outline {% endif %}"
               name: "The toggle is {{states('input_boolean.test_boolean')}}"
-              state: "{% if is_state('input_boolean.test_boolean', 'on')%}"
+              state: "{{ states('input_boolean.test_boolean') }}"
               active: "{{ is_state('input_boolean.test_boolean', 'on') }}"
               color: "{% if is_state('input_boolean.test_boolean', 'on')%} green {% else %} red {% endif %}"
               color_inactive: true

@@ -2,29 +2,29 @@ import nodeResolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
 import json from "@rollup/plugin-json";
 import esbuild from "rollup-plugin-esbuild";
-import { babel } from "@rollup/plugin-babel"; 
+import { babel } from "@rollup/plugin-babel";
 
 const dev = process.env.ROLLUP_WATCH;
 
 export default {
   input: "src/main.ts",
   output: {
-    file: "dist/template-entity-row.js",
+    file: "dist/nunjucks-entity-row.js",
     format: "es",
   },
   plugins: [
-    nodeResolve(),
+    nodeResolve({ browser: true, preferBuiltins: false }),
     commonjs(),
     json(),
-    esbuild({ // 2. Replace typescript() with esbuild()
+    esbuild({
       minify: !dev,
-      target: 'es2017',
+      target: 'es2022',
       tsconfig: './tsconfig.json'
     }),
-    babel({ 
-      presets: [["@babel/preset-env", { modules: false }, "@babel/preset-typescript"]], 
+    babel({
+      presets: [["@babel/preset-env", { modules: false }]],
       babelHelpers: "bundled",
-      extensions: [".js", ".jsx", ".ts", ".tsx"] // Ensure it targets TS files
+      extensions: [".js", ".jsx", ".ts", ".tsx"]
     }),
   ],
 };

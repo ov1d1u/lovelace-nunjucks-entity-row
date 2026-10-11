@@ -15,15 +15,16 @@ card:
   title: Tap action
   entities:
     - entity: input_boolean.test_boolean
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       name: "{% if is_state(config.entity, 'on') %} Toggle {% else %} More info {% endif %}"
-      tap_action: "{'action': '{% if is_state('input_boolean.test_boolean', 'on') %}toggle{% else %}more-info{% endif %}'}"
+      tap_action:
+        action: "{% if is_state('input_boolean.test_boolean', 'on') %}toggle{% else %}more-info{% endif %}"
       hold_action:
         action: more-info
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: light.bed_light
       hold_action:
         action: more-info
@@ -31,12 +32,12 @@ card:
         {
           "action": "toggle",
           "confirmation": {
-            "text": "Do you really want to turn {{ state_attr(config.entity, 'friendly_name') }} {% if is_state(config.entity, 'on') %}off{% else %}on{% endif %}?",
-          },
+            "text": "Do you really want to turn {{ state_attr(config.entity, 'friendly_name') }} {% if is_state(config.entity, 'on') %}off{% else %}on{% endif %}?"
+          }
         }
       double_tap_action:
         action: toggle
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       name: No entity
       entity: light.bed_light
       tap_action: { "action": "toggle" }
@@ -44,7 +45,7 @@ card:
 interactions:
   - type: click
     root: hui-entities-card
-    selector: "#states div:nth-child(4) template-entity-row"
+    selector: "#states div:nth-child(4) nunjucks-entity-row"
     settle_ms: 100
 
 assertions:

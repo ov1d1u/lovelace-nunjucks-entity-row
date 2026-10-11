@@ -1,109 +1,71 @@
-import { hass } from "./hass";
-import { BrowserID } from "./browser_id";
+import { renderTemplate } from "ha-nunjucks";
 
-interface CachedTemplate {
-  template: string;
-  variables: object;
-  value: string;
-  callbacks: Set<(string) => void>;
-  unsubscribe: Promise<() => Promise<void>>;
+const OPTIONS = new Set([
+  "icon", "active", "name", "secondary", "secondary_name", "state",
+  "state_display", "condition", "hidden", "image", "entity", "color", "toggle",
+  "button", "tap_action", "hold_action", "double_tap_action", "button_action",
+  "icon_tap_action", "icon_hold_action", "icon_double_tap_action",
+  "state_tap_action", "state_hold_action", "state_double_tap_action",
+  "action_entity", "secondary_entity", "secondary_action_entity",
+  "icon_action_entity", "state_action_entity", "color_inactive", "time_format",
+]);
+const STRUCTURED = new Set(["name", "secondary_name", "secondary", "time_format"]);
+const isTemplate = (value: unknown): value is string =>
+  typeof value === "string" && /{{|{%|{#/.test(value);
+
+function containsTemplate(value: unknown): boolean {
+  if (isTemplate(value)) return true;
+  return value !== null && typeof value === "object" &&
+    Object.values(value).some(containsTemplate);
 }
 
-interface RenderTemplateResult {
-  result: string;
-  listeners: any;
+export function hasConfigurationTemplates(config: Record<string, unknown>): boolean {
+  return Object.entries(config).some(([key, value]) => OPTIONS.has(key) && containsTemplate(value));
 }
 
-(window as any).cardMod_template_cache =
-  (window as any).cardMod_template_cache || {};
-
-const cachedTemplates: Record<string, CachedTemplate> = (window as any)
-  .cardMod_template_cache;
-
-function template_updated(
-  key: string,
-  result: RenderTemplateResult
-): Promise<void> {
-  const cache = cachedTemplates[key];
-  if (!cache) {
-    return;
+function renderValue(hass: any, value: any, config: object): any {
+  if (isTemplate(value)) return renderTemplate(hass, value, { config }, false);
+  if (Array.isArray(value)) return value.map((item) => renderValue(hass, item, config));
+  if (value && typeof value === "object") {
+    return Object.fromEntries(Object.entries(value).map(([key, item]) =>
+      [key, renderValue(hass, item, config)]));
   }
-  cache.value = result.result;
-  cache.callbacks.forEach((f) => f(result.result));
+  return value;
 }
 
-export function hasTemplate(str, nested_templates?: boolean) {
-  if (!str) return false;
-  const s = String(str);
-  if (nested_templates) {
-    return s.includes("[[") || s.includes("[%") || s.includes("[#");
+function parseStructured(key: string, value: any): any {
+  const action = key.endsWith("_action");
+  if (!action && !STRUCTURED.has(key)) return value;
+  if (typeof value === "string" && (action || /^[\[{]/.test(value.trim()))) {
+    value = JSON.parse(value);
   }
-  return s.includes("{{") || s.includes("{%");
+  if (action && (!value || typeof value !== "object" || Array.isArray(value))) {
+    throw new Error("Expected a JSON action object");
+  }
+  if (key === "secondary" && value !== null && typeof value === "object" && !Array.isArray(value)) {
+    throw new Error("Expected a secondary list or text");
+  }
+  return value;
 }
 
-export async function bind_template(
-  callback: (string) => void,
-  template: string,
-  variables: object,
-  nested_templates?: boolean
-): Promise<void> {
-  const hs = await hass();
-  const connection = hs.connection;
-
-  if (nested_templates) {
-    template = template
-      .replace(/\[\[([\s\S]*?)\]\]/g, "{{$1}}")
-      .replace(/\[%([\s\S]*?)%\]/g, "{%$1%}")
-      .replace(/\[#([\s\S]*?)#\]/g, "{#$1#}");
-  }
-
-  const cacheKey = JSON.stringify([template, variables]);
-  let cache = cachedTemplates[cacheKey];
-  if (!cache) {
-    unbind_template(callback);
-    callback("");
-
-    variables = {
-      user: hs.user.name,
-      browser: BrowserID,
-      hash: location.hash.substr(1) || "",
-      ...variables,
-    };
-
-    cachedTemplates[cacheKey] = cache = {
-      template,
-      variables,
-      value: "",
-      callbacks: new Set([callback]),
-      unsubscribe: connection.subscribeMessage(
-        (result: RenderTemplateResult) => template_updated(cacheKey, result),
-        {
-          type: "render_template",
-          template,
-          variables,
-        }
-      ),
-    };
-  } else {
-    if (!cache.callbacks.has(callback)) unbind_template(callback);
-    callback(cache.value);
-    cache.callbacks.add(callback);
-  }
-}
-
-export async function unbind_template(
-  callback: (string) => void
-): Promise<void> {
-  let unsubscriber: Promise<() => Promise<void>>;
-  for (const [key, cache] of Object.entries(cachedTemplates)) {
-    if (cache.callbacks.has(callback)) {
-      cache.callbacks.delete(callback);
-      if (cache.callbacks.size == 0) {
-        unsubscriber = cache.unsubscribe;
-        delete cachedTemplates[key];
-      }
-      break;
+/** Rebuild from source, retaining only valid results from the same configuration. */
+export function renderConfiguration(
+  hass: any,
+  source: Record<string, any>,
+  previous: Record<string, any> = {},
+  report: (key: string, error: unknown) => void = (key, error) =>
+    console.error(`nunjucks-entity-row: failed to render ${key}`, error),
+): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, value] of Object.entries(source)) {
+    try {
+      const rendered = OPTIONS.has(key) ? renderValue(hass, value, source) : structuredClone(value);
+      result[key] = OPTIONS.has(key) && isTemplate(value)
+        ? parseStructured(key, rendered) : rendered;
+    } catch (error) {
+      report(key, error);
+      if (previous && Object.hasOwn(previous, key)) result[key] = previous[key];
     }
   }
-  if (unsubscriber) await (await unsubscriber)();
+  return result;
 }

@@ -1,2 +1,2 @@
-- local_path: ../dist/template-entity-row.js
-  filename: template-entity-row.js
+- local_path: ../dist/nunjucks-entity-row.js
+  filename: nunjucks-entity-row.js

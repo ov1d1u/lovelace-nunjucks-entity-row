@@ -18,14 +18,14 @@ setup:
 card:
   type: entities
   entities:
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: light.bed_light
       name:
         - type: area
         - type: text
           text: ' - '
         - type: entity
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: light.bed_light
       name: |
         [

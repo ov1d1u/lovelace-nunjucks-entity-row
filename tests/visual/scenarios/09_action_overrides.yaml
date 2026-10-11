@@ -37,19 +37,19 @@ card:
   type: entities
   title: Tap action
   entities:
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       tap_action:
         action: none
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       hold_action:
         action: more-info
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       double_tap_action:
         action: more-info
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       tap_action:
         action: none
@@ -58,7 +58,7 @@ card:
         perform_action: input_number.increment
         target:
           entity_id: input_number.test_number
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       tap_action:
         action: none
@@ -70,14 +70,14 @@ card:
             "entity_id": "{{ 'input_number.test_number' }}"
           }
         }
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       secondary: Tap action
       tap_action:
         action: toggle
       secondary_entity: |
         {{ "light.bed_light" }}
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: input_boolean.test_boolean
       secondary: Tap action
       tap_action:
@@ -93,95 +93,95 @@ card:
 
 interactions:
   - type: click
-    root: "#states div:nth-of-type(4) template-entity-row"
+    root: "#states div:nth-of-type(4) nunjucks-entity-row"
     selector: "state-badge"
     settle_ms: 50
   - type: click
-    root: "#states div:nth-of-type(5) template-entity-row"
+    root: "#states div:nth-of-type(5) nunjucks-entity-row"
     selector: ".state"
     settle_ms: 50
   - type: click
-    root: "#states div:nth-of-type(6) template-entity-row"
+    root: "#states div:nth-of-type(6) nunjucks-entity-row"
     selector: ".secondary"
     settle_ms: 50
   - type: click
-    root: "#states div:nth-of-type(7) template-entity-row"
+    root: "#states div:nth-of-type(7) nunjucks-entity-row"
     selector: ".secondary state-display"
     settle_ms: 50
 
 assertions:
   - type: css_property
-    root: "#states div:nth-of-type(1) template-entity-row"
+    root: "#states div:nth-of-type(1) nunjucks-entity-row"
     selector: ".info"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(1) template-entity-row"
+    root: "#states div:nth-of-type(1) nunjucks-entity-row"
     selector: "state-badge"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(1) template-entity-row"
+    root: "#states div:nth-of-type(1) nunjucks-entity-row"
     selector: ".state"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(2) template-entity-row"
+    root: "#states div:nth-of-type(2) nunjucks-entity-row"
     selector: ".info"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(2) template-entity-row"
+    root: "#states div:nth-of-type(2) nunjucks-entity-row"
     selector: "state-badge"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(2) template-entity-row"
+    root: "#states div:nth-of-type(2) nunjucks-entity-row"
     selector: ".state"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(3) template-entity-row"
+    root: "#states div:nth-of-type(3) nunjucks-entity-row"
     selector: ".info"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(3) template-entity-row"
+    root: "#states div:nth-of-type(3) nunjucks-entity-row"
     selector: "state-badge"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(3) template-entity-row"
+    root: "#states div:nth-of-type(3) nunjucks-entity-row"
     selector: ".state"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(4) template-entity-row"
+    root: "#states div:nth-of-type(4) nunjucks-entity-row"
     selector: ".info"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(4) template-entity-row"
+    root: "#states div:nth-of-type(4) nunjucks-entity-row"
     selector: "state-badge"
     property: "cursor"
     expected: "pointer"
   - type: css_property
-    root: "#states div:nth-of-type(4) template-entity-row"
+    root: "#states div:nth-of-type(4) nunjucks-entity-row"
     selector: ".state"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(5) template-entity-row"
+    root: "#states div:nth-of-type(5) nunjucks-entity-row"
     selector: ".info"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(5) template-entity-row"
+    root: "#states div:nth-of-type(5) nunjucks-entity-row"
     selector: "state-badge"
     property: "cursor"
     expected: "auto"
   - type: css_property
-    root: "#states div:nth-of-type(5) template-entity-row"
+    root: "#states div:nth-of-type(5) nunjucks-entity-row"
     selector: ".state"
     property: "cursor"
     expected: "pointer"

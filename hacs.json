@@ -1,7 +1,7 @@
 {
-    "name": "template-entity-row",
+    "name": "lovelace-nunjucks-entity-row",
     "render_readme": true,
     "homeassistant": "2026.8.0.dev0",
     "content_in_root": false,
-    "filename": "template-entity-row.js"
+    "filename": "nunjucks-entity-row.js"
 }

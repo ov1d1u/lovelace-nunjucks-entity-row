@@ -19,23 +19,23 @@ card:
     - light.bed_light
     - type: section
       label: icon
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       icon: mdi:cog
     - type: section
       label: name
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       name: Name
     - type: section
       label: state
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       state: state
     - type: section
       label: secondary
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       secondary: secondary
     - type: section
       label: image
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       image: https://picsum.photos/id/433/50
 
 assertions:

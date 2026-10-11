@@ -1,4 +1,4 @@
-# template-entity-row tests
+# nunjucks-entity-row tests
 
 This repository uses [ha-testcontainer](https://github.com/Lint-Free-Technology/ha-testcontainer)
 for Home Assistant visual tests.
@@ -43,3 +43,15 @@ pytest tests/visual/test_scenarios.py -k templates
 SNAPSHOT_UPDATE=1 pytest tests/visual/test_scenarios.py
 DOC_IMAGE_UPDATE=1 pytest tests/visual/test_doc_images.py
 ```
+
+## Frontend renderer and lifecycle tests
+
+These browser tests use the real bundled card and ha-nunjucks with a minimal Home Assistant fixture; Docker is not required.
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+```
+
+They cover nested YAML templates, JSON results, error recovery, visibility and action updates, configuration replacement, delayed hass assignment, minute refreshes, and reconnect cleanup. The Home Assistant visual suite above remains the check for integration with core elements.

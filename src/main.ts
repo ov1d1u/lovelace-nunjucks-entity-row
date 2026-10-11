@@ -1,111 +1,54 @@
 import { LitElement, html, css, PropertyValues } from "lit";
-import { property, queryAsync } from "lit/decorators.js";
+import { property } from "lit/decorators.js";
 import { classMap } from "lit/directives/class-map.js";
 import { bindActionHandler, buttonAction } from "./helpers/action";
 import pjson from "../package.json";
-import { bind_template, hasTemplate } from "./helpers/templates";
-import { hass } from "./helpers/hass";
+import { renderConfiguration, hasConfigurationTemplates } from "./helpers/templates";
 import { stateActive } from "./helpers/common/entity/state_active";
 import { computeCssColor } from "./helpers/common/entity/compute_color";
 
-const OPTIONS = [
-  "icon",
-  "active",
-  "name",
-  "secondary",
-  "secondary_name",
-  "state",
-  "state_display",
-  "condition", // deprecated, use hidden instead
-  "hidden",
-  "image",
-  "entity",
-  "color",
-  "toggle",
-  "tap_action",
-  "hold_action",
-  "double_tap_action",
-  "button_action",
-  "icon_tap_action",
-  "icon_hold_action",
-  "icon_double_tap_action",
-  "state_tap_action",
-  "state_hold_action",
-  "state_double_tap_action",
-  "action_entity",
-  "secondary_entity",
-  "secondary_action_entity",
-  "icon_action_entity",
-  "state_action_entity",
-  "color_inactive",
-  "time_format",
-];
-
-const LOCALIZE_PATTERN = /_\([^)]*\)/g;
-
-const translate = (hass, text: String) => {
-  return text.replace(LOCALIZE_PATTERN, (key) => {
-    const params = key
-      .substring(2, key.length - 1)
-      .split(new RegExp(/\s*,\s*/));
-    return hass.localize.apply(null, params) || key;
-  });
-};
-  
-class TemplateEntityRow extends LitElement {
+class NunjucksEntityRow extends LitElement {
   @property() _config;
   @property() hass;
   @property() config; // Rendered configuration of the row to display
   @property() _action;
   
-  @queryAsync(".info") _infoElement;
 
   private _infoActionElement: HTMLElement;
   private _boundInfoActionListener = this._infoActionListener.bind(this);
   private _infoActionEvents = ["mousedown", "touchstart", "click", "keydown", "contextmenu"];
 
+  private _refreshTimer?: ReturnType<typeof setInterval>;
+  private _hasTemplates = false;
+
   setConfig(config) {
+    if (config.nested_templates === true) {
+      throw new Error("nested_templates is no longer supported. Use standard Nunjucks {{ }} and {% %} delimiters.");
+    }
     if (config.toggle !== undefined && config.button !== undefined) {
       throw new Error("toggle and button options cannot be used together.");
     }
-    this._config = { ...config };
-    this.config = { ...this._config };
-
-    this.bind_templates();
+    this._config = structuredClone(config);
+    this.config = undefined;
+    this._hasTemplates = hasConfigurationTemplates(this._config);
+    this._syncRefreshTimer();
   }
 
-  async bind_templates() {
-    const hs = await hass();
-    for (const k of OPTIONS) {
-      if (!this._config[k]) continue;
-      if (hasTemplate(this._config[k], this._config.nested_templates)) {
-        bind_template(
-          (res) => {
-            const state = { ...this.config };
-            if (typeof res === "string") res = translate(hs, res);
-            state[k] = res;
-            this.config = state;
-          },
-          this._config[k],
-          { config: this._config },
-          this._config.nested_templates
-        );
-      } else if (typeof this._config[k] === "string") {
-        this.config[k] = translate(hs, this._config[k]);
-      }
+  protected willUpdate(changedProperties: PropertyValues) {
+    if (this._config && this.hass) {
+      const previous = this.config;
+      this.config = renderConfiguration(this.hass, this._config, previous);
+      // A property assigned during willUpdate does not schedule a separate update.
+      changedProperties.set("config", previous);
     }
-    this.requestUpdate();
   }
 
-  async firstUpdated() {
-    const condition = this.config.condition === undefined ? true
-      : String(this.config.condition).toLowerCase() === "true";
-    const hidden = (this.config.hidden === undefined || this.config.hidden === "") ? !condition
-      : String(this.config.hidden).toLowerCase() === "true";
-    this.dispatchEvent(
-      new CustomEvent("row-visibility-changed", 
-        { detail: { row: this, value: !hidden }, bubbles: true, composed: true }) 
-    );
+  private _syncRefreshTimer() {
+    clearInterval(this._refreshTimer);
+    this._refreshTimer = undefined;
+    if (this.isConnected && this._hasTemplates) {
+      this._refreshTimer = setInterval(() => this.requestUpdate(), 60_000);
+    }
   }
 
   _actionEntity(part?: "" | "icon" | "state" | "secondary") {
@@ -152,7 +95,7 @@ class TemplateEntityRow extends LitElement {
   }
 
   _bindActionHandler(element, part: "" | "icon" | "state" = "") {
-    if (!this._hasAction(part)) return;
+    if (!element || !this._hasAction(part)) return;
     const options = {
       hasHold: this._actionConfig(part, "hold") !== undefined,
       hasDoubleClick: this._actionConfig(part, "double_tap") !== undefined,
@@ -202,7 +145,7 @@ class TemplateEntityRow extends LitElement {
   }
 
   protected async updated(changedProperties: PropertyValues) {
-    if (changedProperties.has("config")) {
+    if (changedProperties.has("config") && this.config) {
       const oldCondition = changedProperties.get("config")?.condition === undefined ? true
         : String(changedProperties.get("config")?.condition).toLowerCase() === "true";
       const oldHidden = (changedProperties.get("config")?.hidden === undefined || changedProperties.get("config")?.hidden === "") ? !oldCondition
@@ -211,14 +154,19 @@ class TemplateEntityRow extends LitElement {
         : String(this.config.condition).toLowerCase() === "true";
       const newHidden = (this.config.hidden === undefined || this.config.hidden === "") ? !newCondition
         : String(this.config.hidden).toLowerCase() === "true";
-      if (oldHidden !== newHidden) {
+      if (!changedProperties.get("config") || oldHidden !== newHidden) {
         this.dispatchEvent(
           new CustomEvent("row-visibility-changed", 
             { detail: { row: this, value: !newHidden }, bubbles: true, composed: true }) 
         );
       }
 
-      this._bindActionHandler(this.shadowRoot.querySelector(".info"));
+      const info = this.shadowRoot.querySelector(".info");
+      if (info && this.isConnected) {
+        this._infoActionEvents.forEach((event) =>
+          info.addEventListener(event, this._boundInfoActionListener, { capture: true }));
+      }
+      this._bindActionHandler(info);
       this._bindActionHandler(this.shadowRoot.querySelector("state-badge"), "icon");
 
       const show_toggle = this.config.toggle && this.config.entity;
@@ -231,23 +179,19 @@ class TemplateEntityRow extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._infoElement.then((element) => {
-      this._infoActionEvents.forEach((event) => {
-        element.addEventListener(event, this._boundInfoActionListener, { capture: true });
-      });
-    });
+    this._syncRefreshTimer();
+    this.requestUpdate();
   }
 
   disconnectedCallback() {
-    this._infoElement.then((element) => {
-      this._infoActionEvents.forEach((event) => {
-        element.removeEventListener(event, this._boundInfoActionListener, { capture: true });
-      });
-    });
+    clearInterval(this._refreshTimer);
+    this._refreshTimer = undefined;
+    this._unbindInfoActionHandler(this.shadowRoot?.querySelector(".info"));
     super.disconnectedCallback();
   }
 
   render() {
+    if (!this.hass || !this.config) return html``;
     const base = this.hass.states[this.config.entity?.trim()];
     const entity = (base && JSON.parse(JSON.stringify(base))) || {
       entity_id: "binary_sensor.",
@@ -358,7 +302,7 @@ class TemplateEntityRow extends LitElement {
                 size="small"
                 .disabled=${entity.state === "unavailable"}
               >
-                ${this.config.button === true ? this.hass.localize?.("ui.card.button.press") : translate(this.hass, this.config.button)}
+                ${this.config.button === true ? this.hass.localize?.("ui.card.button.press") : this.config.button}
               </ha-button>`
             : stateDisplay
           }
@@ -369,7 +313,7 @@ class TemplateEntityRow extends LitElement {
 
   static get styles() {
     return [
-      (customElements.get("hui-generic-entity-row") as any)?.styles,
+      (customElements.get("hui-generic-entity-row") as any)?.styles ?? css``,
       css`
         :host {
           display: inline;
@@ -398,12 +342,12 @@ class TemplateEntityRow extends LitElement {
   }
 }
 
-if (!customElements.get("template-entity-row")) {
-  customElements.define("template-entity-row", TemplateEntityRow);
+if (!customElements.get("nunjucks-entity-row")) {
+  customElements.define("nunjucks-entity-row", NunjucksEntityRow);
   console.groupCollapsed(
-    `%c💡 TEMPLATE-ENTITY-ROW ${pjson.version} IS INSTALLED 💡`,
+    `%c💡 NUNJUCKS-ENTITY-ROW ${pjson.version} IS INSTALLED 💡`,
     'color: white; background-color: #CE3226; padding: 2px 5px; font-weight: bold; border-radius: 5px;',
   );
-  console.log('Readme:', 'https://github.com/Lint-Free-Technology/lovelace-template-entity-row');
+  console.log('Readme:', 'https://github.com/ov1d1u/lovelace-nunjucks-entity-row');
   console.groupEnd();
 }

@@ -10,7 +10,7 @@ body:
       placeholder: |
         Core: 2025.10.3
         Frontend: 20251001.2
-        template-entity-row: 1.4.0
+        nunjucks-entity-row: 1.4.0
     validations:
       required: true
   - type: dropdown

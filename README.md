@@ -1,18 +1,18 @@
-# template-entity-row
+# lovelace-nunjucks-entity-row
 
-Forked from [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) to continue development of the stalled project.
+Based on [Lint-Free-Technology/lovelace-template-entity-row](https://github.com/Lint-Free-Technology/lovelace-template-entity-row), originally forked from [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) to continue development of the stalled project.
 
 Display whatever you want in an entities card row.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=Lint-Free-Technology&repository=lovelace-template-entity-row&category=plugin)
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ov1d1u&repository=lovelace-nunjucks-entity-row&category=plugin)
 
-To install via HACS, add this repo [https://github.com/Lint-Free-Technology/lovelace-template-entity-row](https://github.com/Lint-Free-Technology/lovelace-template-entity-row) as a [custom HACS repository](https://www.hacs.xyz/docs/faq/custom_repositories/)  using type `Dashboard`. Use the button above to do this in one step. You are best to remove [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) in your HACS to avoid confusion as to what repo you are using.
+To install via HACS, add this repo [https://github.com/ov1d1u/lovelace-nunjucks-entity-row](https://github.com/ov1d1u/lovelace-nunjucks-entity-row) as a [custom HACS repository](https://www.hacs.xyz/docs/faq/custom_repositories/)  using type `Dashboard`. Use the button above to do this in one step. You are best to remove [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) in your HACS to avoid confusion as to what repo you are using.
 
-Install `template-entity-row.js` as a `module`.
+Install `nunjucks-entity-row.js` as a `module`.
 
 ```yaml
 resources:
-  - url: /local/template-entity-row.js
+  - url: /local/nunjucks-entity-row.js
     type: module
 ```
 
@@ -27,7 +27,7 @@ type: entities
 title: Quick Start
 entities:
   - light.bed_light
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     icon: mdi:lamp
     name: "The light is {{states('light.bed_light')}} but nobody's"
     state: "{% if is_state('input_boolean.test_boolean', 'on')%} home {% else %} away {% endif %}"
@@ -35,10 +35,10 @@ entities:
     active: "{{ is_state('light.bed_light', 'on') }}"
   - entity: input_boolean.test_boolean
     name: A toggle
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     icon: "{% if is_state('input_boolean.test_boolean', 'on')%} mdi:check-circle-outline {% else %} mdi:close-circle-outline {% endif %}"
     name: "The toggle is {{states('input_boolean.test_boolean')}}"
-    state: "{% if is_state('input_boolean.test_boolean', 'on')%}"
+    state: "{{ states('input_boolean.test_boolean') }}"
     active: "{{ is_state('input_boolean.test_boolean', 'on') }}"
     color: "{% if is_state('input_boolean.test_boolean', 'on')%} green {% else %} red {% endif %}"
 ```
@@ -64,7 +64,6 @@ entities:
 | `button_action` | object | Action config | Button action. Set to an action config. If not set the default action will be `input_button.press` for the config entity. |
 | `color` | string | `state` (default)<br>`none`<br>color token<br>CSS color | drives the state color of the icon. By default, the color is based on the `state`, `domain`, and `device_class` of the entity. To take default color, set to `none`. It accepts `state`, `none`, a Home Assistant [color token](https://www.home-assistant.io/dashboards/tile/#available-colors), or a CSS color. |
 | `color_inactive` | boolean | `true` / `false` | If this is set to `true` and `state` is not active, `color` is set by overriding `--state-icon-color` to `color`. This is required since Home Assistant 2026.8.0 where `<state-badge>` uses `color` only when active. |
-| `nested_templates` | boolean | `true` / `false` | If set to `true`, enables nested bracket syntax (`[[`/`]]`) as an alternative to the standard `{{`/`}}` Jinja2 delimiters. This is useful in if using template entity in a card that uses Jinja templates itself. |
 | `tap_action`<br>`hold_action`<br>`double_tap_action` | object | Action config | Primary actions. See [Actions](#actions). |
 | `action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action`. See [Actions](#actions) |
 | `secondary_action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action` when the action is executed on the `secondary` area. This allows the primary actions (e.g. `more-info`, `toggle`) to target the main entity while the `secondary` area targets a different entity. If not set then will default to `secondary_entity` if set, otherwise `entity`. See [Actions](#actions) |
@@ -73,34 +72,37 @@ entities:
 | `state_tap_action`<br>`state_hold_action`<br>`state_double_tap_action` | object | Action config | State actions. See [Actions](#actions). |
 | `state_action_entity` | string | - | If set, overrides the entity id used for `state_tap_action`, `state_hold_action` and `state_double_tap_action`. See [Actions](#actions) |
 
-  | Standard Jinja2 | Nested (`nested_templates: true`) |
-  | - | - |
-  | `{{ expression }}` | `[[ expression ]]` |
-  | `{% block tag %}` | `[% block tag %]` |
-  | `{# comment #}` | `[# comment #]` |
+## Templates and migration
 
-  Example — set `nested_templates: true` and write:
+Templates are rendered in the browser by [ha-nunjucks](https://github.com/Nerwyn/ha-nunjucks), using the current Home Assistant frontend data. They update on `hass` changes and every 60 seconds while the row is connected. No backend template subscriptions are used.
 
-  ```yaml
-  type: custom:template-entity-row
-  nested_templates: true
-  name: "The light is [[ states('light.bed_light') ]]"
-  state: "[% if is_state('input_boolean.car_home', 'on') %] home [% else %] away [% endif %]"
-  ```
+This is a breaking migration from template-entity-row:
 
-All options accept [jinja2 templates](https://www.home-assistant.io/docs/configuration/templating/).
+- Replace the resource with `nunjucks-entity-row.js` and dashboard types with `custom:nunjucks-entity-row`. The old element is not registered.
+- Use standard Nunjucks `{{ expression }}`, `{% block %}`, and `{# comment #}` syntax. `nested_templates: true` is rejected; bracket delimiters are no longer supported.
+- Templates receive `config` (the original configuration), `hass`, and native ha-nunjucks functions and filters. The `user`, `browser`, and `hash` shortcuts have been removed. For the current user, use `hass.user.name`.
+- Replace `_(translation.key)` text with `{{ hass.localize('translation.key') }}`.
+- Backend-only Jinja features and server data are unavailable. Consult ha-nunjucks for syntax and function compatibility.
 
-Jinja templates have access to a few special variables. Those are:
+Templates work recursively inside YAML objects and lists:
 
-- `config` - an object containing the card configuration
-- `user` - the username of the currently logged in user
-- `browser` - the deviceID of the current browser (see [browser_mod](https://github.com/thomasloven/hass-browser_mod)).
-- `hash` - the hash part of the current URL.
+```yaml
+type: custom:nunjucks-entity-row
+entity: light.bed_light
+name:
+  - type: entity
+  - type: text
+    text: " is {{ states(config.entity) }}"
+tap_action:
+  action: perform-action
+  perform_action: light.toggle
+  target:
+    entity_id: "{{ config.entity }}"
+```
 
-In evaluated templates the function `_(<key>)` (underscore) will localize the `<key>` to the current language.
-E.g. `_(component.binary_sensor.entity_component.motion.state.off)` will be replaced with `Clear` if your language is set to English.
+Whole-field templates can also produce valid JSON objects or arrays for names, secondary lists, time formats, and actions. Python dictionary/list representations are not accepted. Plain display text stays text, and numeric text retains its formatting. ha-nunjucks converts rendered true/false to booleans. Literal values retain their types.
 
-To find the available keys you will need to browse the Home Assistant lokalise project. See [Home Assistant Internationalization](https://developers.home-assistant.io/docs/internationalization/) for more information.
+If an option fails to render, its name and error are logged to the console. The previous valid value is retained, or the option is omitted if it has no valid value. Rendering retries on the next update; replacing the configuration clears previous results.
 
 ### Flexible name object
 
@@ -113,15 +115,15 @@ Flexible naming:
 ```yaml
 type: entities
 entities:
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     entity: light.bed_light
-    # Standard yaml configuration - No templates allowed
+    # YAML configuration (nested string values may be templated)
     name:
       - type: area
       - type: text
         text: ' - '
       - type: entity
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     entity: light.bed_light
     # JSON return format
     name: |
@@ -168,13 +170,13 @@ Secondary options:
 ```yaml
 type: entities
 entities:
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     entity: sun.sun
     secondary_name: Next dawn
     secondary:
       - name
       - next_dawn
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     entity: sun.sun
     secondary_name: |
       {{ "Next dusk" if states(config.entity) == 'above_horizon' else "Next dawn" }}
@@ -186,7 +188,7 @@ entities:
     time_format:
       type: time
       style: short
-  - type: custom:template-entity-row
+  - type: custom:nunjucks-entity-row
     entity: sun.sun
     secondary_entity: light.bed_light
     secondary:
@@ -225,14 +227,14 @@ An override can be set for entity if for actions that operate on the config enti
 - State:
   - `state_action_entity` if set, then `action_entity` if set, otherwise main config `entity`
 
-All action config objects can be templated. The template needs to evaluate to a valid [action configuration](https://www.home-assistant.io/dashboards/actions/) in python format. Standard YAML object without templates works too.
+Action objects support templated YAML values or whole-field templates producing a valid JSON [action configuration](https://www.home-assistant.io/dashboards/actions/).
 
 Actions and templates:
 
 ```yaml
-type: custom:template-entity-row
+type: custom:nunjucks-entity-row
 entity: light.bed_light
-# Standard yaml configuration - No templates allowed
+# YAML configuration (nested string values may be templated)
 hold_action:
   action: more-info
 # JSON return format
@@ -240,8 +242,8 @@ tap_action: |
   {
     "action": "toggle",
     "confirmation": {
-      "text": "Do you really want to turn {{ state_attr(config.entity, 'friendly_name') }} {% if is_state(config.entity, 'on') %}off{% else %}on{% endif %}?",
-    },
+      "text": "Do you really want to turn {{ state_attr(config.entity, 'friendly_name') }} {% if is_state(config.entity, 'on') %}off{% else %}on{% endif %}?"
+    }
   }
 double_tap_action:
   action: toggle
@@ -250,7 +252,7 @@ double_tap_action:
 Override actions:
 
 ```yaml
-type: custom:template-entity-row
+type: custom:nunjucks-entity-row
 entity: sun.sun
 secondary_entity: sensor.sun_next_dawn # tap on secondary line will show more-info for sensor.sun_next_dawn
 secondary: |

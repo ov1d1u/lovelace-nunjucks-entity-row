@@ -15,13 +15,13 @@ setup:
 card:
   type: entities
   entities:
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: sun.sun
       secondary_name: Next dawn
       secondary:
         - name
         - next_dawn
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: sun.sun
       secondary_name: |
         {{ "Next dusk" if states(config.entity) == 'above_horizon' else "Next dawn" }}
@@ -33,7 +33,7 @@ card:
       time_format:
         type: time
         style: short
-    - type: custom:template-entity-row
+    - type: custom:nunjucks-entity-row
       entity: sun.sun
       secondary_entity: light.bed_light
       secondary:

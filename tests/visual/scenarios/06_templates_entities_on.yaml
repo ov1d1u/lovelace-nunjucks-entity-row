@@ -2,7 +2,7 @@ id: templates_entities_on
 description: Template rendering with entities on
 view_path: templates-entities-on
 
-# turn test_boolean on, then off, then on again to test the conditional rendering of template-entity-row
+# turn test_boolean on, then off, then on again to test the conditional rendering of nunjucks-entity-row
 setup:
   - type: ha_service
     domain: light
@@ -50,13 +50,13 @@ dashboard:
                 - entity: input_boolean.test_boolean
                 - type: section
                   label: icon
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: "{% if is_state('input_boolean.test_boolean', 'on') %} mdi:cog {% else %} mdi:cog-outline {% endif %}"
                 - type: section
                   label: name
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   name: "Name for{% if is_state('input_boolean.test_boolean', 'on') %} active {% else %} inactive {% endif %}state"
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   entity: light.bed_light
                   name: |
                     [
@@ -65,15 +65,15 @@ dashboard:
                     ]
                 - type: section
                   label: state
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   state: "[{{states('input_boolean.test_boolean')}}]"
                 - type: section
                   label: secondary
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   secondary: "{{states('input_boolean.test_boolean')}}"
                 - type: section
                   label: image
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   image: |
                     {%- set id = '433' if is_state('input_boolean.test_boolean', 'off') else '237' -%}
                     https://picsum.photos/id/{{id}}/50
@@ -87,31 +87,31 @@ dashboard:
               entities:
                 - type: section
                   label: active
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: mdi:cog
                   active: "{{is_state('input_boolean.test_boolean', 'on')}}"
                 - type: section
                   label: condition
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   name: conditional (deprecated condition)
                   condition: "{{is_state('input_boolean.test_boolean', 'on')}}"
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   name: conditional (hidden)
                   hidden: "{{is_state('input_boolean.test_boolean', 'off')}}"
                 - type: section
                   label: color
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: mdi:cog
                   entity: switch.decorative_lights
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: mdi:cog
-                  color: "rgb{{state_attr('light.bed_light', 'rgb_color')}}"
+                  color: "rgb({{ state_attr('light.bed_light', 'rgb_color') | join(',') }})"
                   active: "true"
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: mdi:cog
                   name: Changing
                   color: "{{'teal' if is_state('input_boolean.test_boolean', 'on') else 'purple' }}"
-                - type: custom:template-entity-row
+                - type: custom:nunjucks-entity-row
                   icon: mdi:cog
                   name: Changing
                   color: "{{'purple' if is_state('input_boolean.test_boolean', 'on') else '' }}"

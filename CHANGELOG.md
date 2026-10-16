@@ -1,3 +1,10 @@
+### [4.1.1](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.0...v4.1.1) (2026-10-16)
+
+
+### 🐞 Bug Fixes
+
+* match native entity row height under themed row padding ([43e2a6e](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/43e2a6efbcdb92528e3a22ba76a955bd49c75cd0))
+
 ## [4.1.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.0.0...v4.1.0) (2026-10-11)
 
 

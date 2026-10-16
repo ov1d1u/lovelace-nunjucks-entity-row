@@ -365,6 +365,12 @@ class NunjucksEntityRow extends LitElement {
         .state {
           text-align: right;
         }
+        .info {
+          /* Let a primary + secondary line pair use up to 4px above and below
+             without growing the row, so rows keep the same height whether or
+             not secondary text is shown (e.g. themes using a taller line-height). */
+          margin-block: -4px;
+        }
         .secondary {
           color: var(--secondary-text-color);
         }

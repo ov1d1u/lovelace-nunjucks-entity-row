@@ -26,6 +26,7 @@ class NunjucksEntityRow extends LitElement {
 
   private _refreshTimer?: ReturnType<typeof setInterval>;
   private _hasTemplates = false;
+  private _styleObserver?: MutationObserver;
 
   setConfig(config) {
     if (config.nested_templates === true) {
@@ -150,7 +151,12 @@ class NunjucksEntityRow extends LitElement {
     );
   }
 
+  protected firstUpdated() {
+    this._observeInjectedStyles();
+  }
+
   protected async updated(changedProperties: PropertyValues) {
+    this._syncRowPadding();
     if (changedProperties.has("config") && this.config) {
       const oldCondition = changedProperties.get("config")?.condition === undefined ? true
         : String(changedProperties.get("config")?.condition).toLowerCase() === "true";
@@ -186,12 +192,37 @@ class NunjucksEntityRow extends LitElement {
   connectedCallback() {
     super.connectedCallback();
     this._syncRefreshTimer();
+    this._observeInjectedStyles();
     this.requestUpdate();
+  }
+
+  // Themes (card-mod / UIX) often style rows through the `hui-generic-entity-row`
+  // selector, e.g. adding vertical padding. That selector never matches this row,
+  // so mirror the vertical padding a real `hui-generic-entity-row` would receive
+  // in this shadow root onto our wrapper to keep the same height as native rows.
+  private _syncRowPadding() {
+    const probe = this.shadowRoot?.querySelector<HTMLElement>("hui-generic-entity-row.probe");
+    const wrapper = this.shadowRoot?.querySelector<HTMLElement>("#wrapper");
+    if (!probe || !wrapper) return;
+    const style = getComputedStyle(probe);
+    const top = style.paddingTop;
+    const bottom = style.paddingBottom;
+    if (wrapper.style.paddingTop !== top) wrapper.style.paddingTop = top;
+    if (wrapper.style.paddingBottom !== bottom) wrapper.style.paddingBottom = bottom;
+  }
+
+  private _observeInjectedStyles() {
+    if (!this.shadowRoot || this._styleObserver) return;
+    // card-mod / UIX inject their <style> elements asynchronously
+    this._styleObserver = new MutationObserver(() => this._syncRowPadding());
+    this._styleObserver.observe(this.shadowRoot, { childList: true, subtree: true, characterData: true });
   }
 
   disconnectedCallback() {
     clearInterval(this._refreshTimer);
     this._refreshTimer = undefined;
+    this._styleObserver?.disconnect();
+    this._styleObserver = undefined;
     this._unbindInfoActionHandler(this.shadowRoot?.querySelector(".info"));
     super.disconnectedCallback();
   }
@@ -262,6 +293,7 @@ class NunjucksEntityRow extends LitElement {
     const has_state_action = this._hasAction("state");
 
     return html`
+      <hui-generic-entity-row class="probe" aria-hidden="true"></hui-generic-entity-row>
       <div id="wrapper" class="${hidden ? "hidden" : ""}">
         <state-badge
           .hass=${this.hass}
@@ -346,6 +378,9 @@ class NunjucksEntityRow extends LitElement {
         }
         #wrapper.hidden {
           display: none;
+        }
+        hui-generic-entity-row.probe {
+          display: none !important;
         }
       `,
     ];

@@ -1,3 +1,10 @@
+### [4.1.2](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.1...v4.1.2) (2026-10-16)
+
+
+### 🐞 Bug Fixes
+
+* keep row height constant when secondary text is shown ([669e9be](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/669e9be176f0cecd78f2fbab2181a059979ff301))
+
 ### [4.1.1](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.0...v4.1.1) (2026-10-16)
 
 

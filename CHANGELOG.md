@@ -1,3 +1,10 @@
+### [4.2.1](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.2.0...v4.2.1) (2026-10-20)
+
+
+### 🐞 Bug Fixes
+
+* apply time_format to timestamp state display ([374606e](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/374606ec0cd773aa3046a12e65e8e3341d3857ea))
+
 ## [4.2.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.2...v4.2.0) (2026-10-20)
 
 

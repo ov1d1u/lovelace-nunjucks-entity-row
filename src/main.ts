@@ -256,7 +256,8 @@ class NunjucksEntityRow extends LitElement {
     // stateObj for state-badge cannot have undefined as will cause errors so we default to ""
     entity.state = this.config.state ?? base?.state ?? "";
     const stateDisplay = this.config.state_display ?? (this.config.state ? entity.state : this.hass.formatEntityState(entity));
-    const migratedStateColor = this.config.state_color === true ? "state" : this.config.state_color == false ? "none" : undefined;
+    // Only legacy booleans control the icon; strings color the state text.
+    const migratedStateColor = this.config.state_color === true ? "state" : this.config.state_color === false ? "none" : undefined;
     // if our stateObj state is "" this is no state so we use "none" for color when stateObj state is "" otherwise icon be colored
     const color = this.config.color ?? migratedStateColor ?? (entity.state !== "" ? "state" : "none");
 
@@ -329,6 +330,7 @@ class NunjucksEntityRow extends LitElement {
         <div
           @action="${!show_toggle && !show_button ? this._stateActionHandler : undefined}"
           class=${classMap({ state: true, pointer: !show_toggle && !show_button && has_state_action })}
+          style=${styleMap({ color: !show_toggle && !show_button ? textColor(this.config.state_color) : undefined })}
         >
           ${show_toggle
             ? html`<ha-entity-toggle .hass=${this.hass} .stateObj=${entity}>

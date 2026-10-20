@@ -8,6 +8,7 @@ async function textColors(page) {
       primary: color('.info'), secondary: color('.secondary'), state: color('.state'),
       primaryOverride: root.querySelector('.info').style.color,
       secondaryOverride: root.querySelector('.secondary').style.color,
+      stateOverride: root.querySelector('.state').style.color,
       iconColor: root.querySelector('state-badge').color,
       iconStyle: root.querySelector('state-badge').getAttribute('style'),
       secondaryDisplay: root.querySelector('state-display') ? color('state-display') : null,
@@ -221,4 +222,88 @@ test('color-only templates update on hass changes and minute refreshes', async (
   expect(await textColors(page)).toMatchObject({ primary: 'rgb(18, 52, 86)', secondary: 'rgb(171, 205, 239)' });
   expect(await page.evaluate(() => ['primary_color', 'secondary_color'].every((key) =>
     window.templates.hasConfigurationTemplates({ [key]: '{{ now() }}' })))).toBe(true);
+});
+
+test('state text colors resolve tokens and CSS independently of activity and other colors', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary: 'Details', color: 'blue',
+      primary_color: '#123456', secondary_color: '#abcdef' });
+    row.style.cssText = 'color: rgb(10, 20, 30); --amber-color: rgb(255, 193, 7); --accent-color: rgb(0, 128, 128)';
+  });
+  const defaults = await textColors(page);
+  for (const state of ['off', 'on']) {
+    for (const [value, expected] of [
+      [' amber ', 'rgb(255, 193, 7)'], ['#654321', 'rgb(101, 67, 33)'],
+      ['var(--accent-color)', 'rgb(0, 128, 128)'], ['rgb(12, 34, 56)', 'rgb(12, 34, 56)'],
+    ]) {
+      await page.evaluate(async ({ state, value }) => {
+        window.row.setConfig({ entity: 'light.test', secondary: 'Details', color: 'blue',
+          primary_color: '#123456', secondary_color: '#abcdef', state_color: value, state_display: 'Custom state' });
+        window.row.hass = window.makeHass(state);
+        await window.row.updateComplete;
+      }, { state, value });
+      const colors = await textColors(page);
+      expect(colors.state).toBe(expected);
+      expect({ ...colors, state: defaults.state, stateOverride: defaults.stateOverride }).toEqual(defaults);
+      await expect(page.locator('nunjucks-entity-row .state')).toHaveText('Custom state');
+    }
+  }
+});
+
+test('default state colors clear overrides without changing icon defaults', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test' });
+    row.style.color = 'rgb(10, 20, 30)';
+  });
+  const defaults = await textColors(page);
+  for (const value of [undefined, '', '   ', 'none']) {
+    await page.evaluate(async (value) => {
+      window.row.setConfig({ entity: 'light.test', state_color: '#abcdef' });
+      await window.row.updateComplete;
+      window.row.setConfig({ entity: 'light.test', state_color: value });
+      await window.row.updateComplete;
+    }, value);
+    expect(await textColors(page)).toEqual(defaults);
+  }
+});
+
+test('state-only color templates update on hass changes and minute refreshes', async ({ page }) => {
+  await page.clock.install();
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test',
+      state_color: "{{ '#123456' if is_state(config.entity, 'off') else 'none' }}" });
+    row.style.color = 'rgb(10, 20, 30)';
+  });
+  expect(await page.evaluate(() => window.row._refreshTimer !== undefined &&
+    window.templates.hasConfigurationTemplates({ state_color: '{{ now() }}' }))).toBe(true);
+  expect(await textColors(page)).toMatchObject({ state: 'rgb(18, 52, 86)', iconColor: 'state' });
+  await page.evaluate(async () => { window.row.hass = window.makeHass('on'); await window.row.updateComplete; });
+  expect(await textColors(page)).toMatchObject({ state: 'rgb(10, 20, 30)', stateOverride: '', iconColor: 'state' });
+  await page.evaluate(() => { window.row.hass.states['light.test'].state = 'off'; });
+  await page.clock.fastForward(60_000);
+  expect(await textColors(page)).toMatchObject({ state: 'rgb(18, 52, 86)', iconColor: 'state' });
+});
+
+test('legacy state color booleans still control the icon and respect explicit color', async ({ page }) => {
+  await page.evaluate(() => window.mountRow({ entity: 'light.test' }));
+  for (const value of [true, false]) {
+    for (const color of [undefined, 'blue']) {
+      await page.evaluate(async ({ value, color }) => {
+        window.row.setConfig({ entity: 'light.test', state_color: value, color });
+        await window.row.updateComplete;
+      }, { value, color });
+      expect(await textColors(page)).toMatchObject({ stateOverride: '', iconColor: color ?? (value ? 'state' : 'none') });
+    }
+  }
+});
+
+test('state text colors do not style replacement toggles or buttons', async ({ page }) => {
+  await page.evaluate(() => window.mountRow({ entity: 'light.test', state_color: '#123456' }));
+  for (const control of [{ toggle: true }, { button: 'Press' }, {}]) {
+    await page.evaluate(async (control) => {
+      window.row.setConfig({ entity: 'light.test', state_color: '#123456', ...control });
+      await window.row.updateComplete;
+    }, control);
+    expect((await textColors(page)).stateOverride).toBe(control.toggle || control.button ? '' : 'rgb(18, 52, 86)');
+  }
 });

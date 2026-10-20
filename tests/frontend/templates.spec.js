@@ -307,3 +307,98 @@ test('state text colors do not style replacement toggles or buttons', async ({ p
     expect((await textColors(page)).stateOverride).toBe(control.toggle || control.button ? '' : 'rgb(18, 52, 86)');
   }
 });
+
+test('time formats use the native state display for the state and secondary information', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'sensor.timestamp' }, false);
+    row.hass = window.makeHass();
+    row.hass.states['sensor.timestamp'] = {
+      entity_id: 'sensor.timestamp', state: '2026-10-11T11:04:00+03:00',
+      attributes: { device_class: 'timestamp' },
+    };
+    row.hass.states['sensor.secondary_timestamp'] = {
+      entity_id: 'sensor.secondary_timestamp', state: '2026-10-10T11:04:00+03:00',
+      attributes: { device_class: 'timestamp' },
+    };
+    const results = [];
+    for (const format of ['relative', 'total', 'date', 'time', 'datetime', { type: 'datetime', style: 'short' }]) {
+      row.setConfig({ entity: 'sensor.timestamp', time_format: format, secondary: ['state'],
+        secondary_entity: 'sensor.secondary_timestamp', state_color: '#123456' });
+      await row.updateComplete;
+      const state = row.shadowRoot.querySelector('.state state-display');
+      const secondary = row.shadowRoot.querySelector('.secondary state-display');
+      results.push({ format: state.timeFormat, secondaryFormat: secondary.timeFormat,
+        content: state.content, state: state.stateObj.state, secondaryState: secondary.stateObj.state,
+        hass: state.hass === row.hass, color: getComputedStyle(state).color,
+        rawState: row.hass.states['sensor.timestamp'].state });
+    }
+    return results;
+  });
+  for (const [index, format] of ['relative', 'total', 'date', 'time', 'datetime', { type: 'datetime', style: 'short' }].entries()) {
+    expect(result[index]).toEqual({ format, secondaryFormat: format, content: 'state',
+      state: '2026-10-11T11:04:00+03:00', secondaryState: '2026-10-10T11:04:00+03:00',
+      hass: true, color: 'rgb(18, 52, 86)', rawState: '2026-10-11T11:04:00+03:00' });
+  }
+});
+
+test('templated time formats and raw state overrides update on hass changes', async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', active: true,
+      state: '{{ states(config.entity) }}', time_format: { type: '{{ "relative" if is_state(config.entity, "off") else "date" }}' } });
+    const read = () => {
+      const state = row.shadowRoot.querySelector('.state state-display');
+      return { format: state.timeFormat, content: state.content, state: state.stateObj.state };
+    };
+    const before = read();
+    row.hass = window.makeHass('on');
+    await row.updateComplete;
+    return { before, after: read() };
+  });
+  expect(result).toEqual({
+    before: { format: { type: 'relative' }, content: 'state', state: 'off' },
+    after: { format: { type: 'date' }, content: 'state', state: 'on' },
+  });
+});
+
+test('state display overrides and replacement controls take precedence over time formats', async ({ page }) => {
+  const results = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test' });
+    const results = [];
+    for (const override of [{ state_display: 'Custom state' }, { state_display: '' }, { toggle: true }, { button: 'Press' }]) {
+      row.setConfig({ entity: 'light.test', time_format: 'relative', ...override });
+      await row.updateComplete;
+      const state = row.shadowRoot.querySelector('.state');
+      results.push({ nativeDisplay: !!state.querySelector('state-display'), text: state.textContent.trim(),
+        toggle: !!state.querySelector('ha-entity-toggle'), button: !!state.querySelector('ha-button') });
+    }
+    return results;
+  });
+  expect(results).toEqual([
+    { nativeDisplay: false, text: 'Custom state', toggle: false, button: false },
+    { nativeDisplay: false, text: '', toggle: false, button: false },
+    { nativeDisplay: false, text: '', toggle: true, button: false },
+    { nativeDisplay: false, text: 'Press', toggle: false, button: true },
+  ]);
+});
+
+test('omitting or clearing time_format restores the default state display', async ({ page }) => {
+  const results = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test' });
+    row.hass.formatEntityState = (entity) => `Localized ${entity.state}`;
+    const results = [];
+    for (const override of [{}, { state: 'Raw' }, { time_format: 'relative' }, {}, { time_format: null }]) {
+      row.setConfig({ entity: 'light.test', ...override });
+      await row.updateComplete;
+      const state = row.shadowRoot.querySelector('.state');
+      results.push({ nativeDisplay: !!state.querySelector('state-display'), text: state.textContent.trim() });
+    }
+    return results;
+  });
+  expect(results).toEqual([
+    { nativeDisplay: false, text: 'Localized off' },
+    { nativeDisplay: false, text: 'Raw' },
+    { nativeDisplay: true, text: '' },
+    { nativeDisplay: false, text: 'Localized off' },
+    { nativeDisplay: false, text: 'Localized off' },
+  ]);
+});

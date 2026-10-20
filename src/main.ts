@@ -255,7 +255,19 @@ class NunjucksEntityRow extends LitElement {
     const secondaryIsText = typeof this.config.secondary === "string";
     // stateObj for state-badge cannot have undefined as will cause errors so we default to ""
     entity.state = this.config.state ?? base?.state ?? "";
-    const stateDisplay = this.config.state_display ?? (this.config.state ? entity.state : this.hass.formatEntityState(entity));
+    // Delegate explicit time formats to HA so timestamp states stay localized
+    // and relative times update. Snapshot the state before icon-only overrides.
+    const stateDisplay = this.config.state_display ?? (
+      this.config.time_format != null
+        ? html`<state-display
+            .hass=${this.hass}
+            .stateObj=${{ ...entity }}
+            .content=${"state"}
+            .timeFormat=${this.config.time_format}
+            timestamp-tooltip
+          ></state-display>`
+        : this.config.state ? entity.state : this.hass.formatEntityState(entity)
+    );
     // Only legacy booleans control the icon; strings color the state text.
     const migratedStateColor = this.config.state_color === true ? "state" : this.config.state_color === false ? "none" : undefined;
     // if our stateObj state is "" this is no state so we use "none" for color when stateObj state is "" otherwise icon be colored

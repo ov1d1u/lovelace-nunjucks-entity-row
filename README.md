@@ -55,7 +55,7 @@ entities:
 | `entity` | string | - | If this evaluates to an entity id, `icon`, `name`, `state` and `image` will be taken from that entity unless manually overridden. Specifying an `entity` will also let you use [actions](https://www.home-assistant.io/dashboards/actions/). If you don’t override `state` or `state_display` then the displayed state text will be the localized `entity` state, which includes any units. |
 | `secondary_entity` | string | - | entity id used for `secondary_name` and `secondary` config. If not set then defaults to `entity`. |
 | `secondary` | string / object | - | If string then this will show as secondary information. If object then will display information as per [secondary object config](#secondary-object-config). |
-| `time_format` | string / object | - | When set controls the time format of any timestamp `secondary` config options. See Home Assistant [`time_format` options](https://www.home-assistant.io/dashboards/entities/#time_format) |
+| `time_format` | string / object | - | When set controls the time format of timestamp states on the right and any timestamp `secondary` config options. Accepts Home Assistant formats such as `relative`, `total`, `date`, `time`, and `datetime`, or an object with `type` and optional `style`. `state_display` takes precedence. See Home Assistant [`time_format` options](https://www.home-assistant.io/dashboards/entities/#time_format) |
 | `state_display` | string | - | If this is set then the displayed state text will be the text or rendered template as text. If you are using an `entity` but overriding `state`, then `state` needs to be a valid raw (non localized) state for the entity’s device class. Use `state_display` to display any localized state you wish to show. |
 | `hidden` | boolean | - | If this is set and evaluates to `true`, the row is hidden and not displayed. Takes precedence over deprecated `condition`. |
 | `condition`<br>**Deprecated** | boolean | - | **Deprecated**. Use `hidden` (opposite logic). If this is set but does not evaluate to `true`, the row is hidden and not displayed. |
@@ -153,6 +153,19 @@ entities:
 ```
 
 ![Flexible naming example](/docs/source/assets/images/02_readme_flexible_naming.png)
+
+### Timestamp state formatting
+
+Use `time_format` to format a timestamp state on the right with Home Assistant's native display, including localized, automatically updating relative times:
+
+```yaml
+type: custom:nunjucks-entity-row
+entity: sensor.litter_last_cleaning_timestamp
+name: Ultimul schimb de așternut
+time_format: relative
+```
+
+The same format applies to timestamp entries in `secondary`. Both string formats and objects such as `{ type: datetime, style: short }` can be templated. `state_display` overrides the formatted state, including when set to an empty string. Without `time_format`, the state keeps its default display.
 
 ### Secondary object config
 

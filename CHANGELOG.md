@@ -1,3 +1,10 @@
+## [4.2.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.2...v4.2.0) (2026-10-20)
+
+
+### ⭐ New Features
+
+* add state text color support ([7719fea](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/7719feaf4f4fd686dc3513b1b5cbe4a2e765d2f0))
+
 ### [4.1.2](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.1.1...v4.1.2) (2026-10-16)
 
 

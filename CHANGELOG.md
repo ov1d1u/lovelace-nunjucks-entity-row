@@ -1,3 +1,15 @@
+## [4.3.0](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.2.1...v4.3.0) (2026-11-13)
+
+
+### ⭐ New Features
+
+* add state progress spinner and secondary progress bar ([198c6d5](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/198c6d5b186c7b61501a413412041bf9191a8fcc))
+
+### ⚙️ Miscellaneous
+
+* Dependency updates ([a8c7268](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/a8c726886e469130221b04cd8f8ca13264baacf9))
+* Update readme to Marketplace and test version matching HA 2026.11.0 ([fd97338](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/commit/fd97338415891fe893969d15f3c78d63de1348b6))
+
 ### [4.2.1](https://github.com/ov1d1u/lovelace-nunjucks-entity-row/compare/v4.2.0...v4.2.1) (2026-10-20)
 
 

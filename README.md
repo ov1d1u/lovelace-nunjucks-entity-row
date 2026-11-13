@@ -4,17 +4,11 @@ Based on [Lint-Free-Technology/lovelace-template-entity-row](https://github.com/
 
 Display whatever you want in an entities card row.
 
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=ov1d1u&repository=lovelace-nunjucks-entity-row&category=plugin)
+<!-- ha-marketplace:exclude-start -->
+[![Open your Home Assistant instance and open a repository in the Marketplace.](https://my.home-assistant.io/badges/marketplace_repository.svg)](https://my.home-assistant.io/redirect/marketplace_repository/?owner=ov1d1u&repository=lovelace-nunjucks-entity-row&category=plugin)
 
-To install via HACS, add this repo [https://github.com/ov1d1u/lovelace-nunjucks-entity-row](https://github.com/ov1d1u/lovelace-nunjucks-entity-row) as a [custom HACS repository](https://www.hacs.xyz/docs/faq/custom_repositories/)  using type `Dashboard`. Use the button above to do this in one step. You are best to remove [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) in your HACS to avoid confusion as to what repo you are using.
-
-Install `nunjucks-entity-row.js` as a `module`.
-
-```yaml
-resources:
-  - url: /local/nunjucks-entity-row.js
-    type: module
-```
+Use [Home Assistant Marketplace](https://www.home-assistant.io/integrations/marketplace/) to add this repo as a [custom repository](https://www.home-assistant.io/integrations/marketplace/#custom-repositories) and install. This can be done in one step using the button above. You can also use the `Add from link` option in Marketplace - use [https://github.com/ov1d1u/lovelace-nunjucks-entity-row](https://github.com/ov1d1u/lovelace-nunjucks-entity-row).
+<!-- ha-marketplace:exclude-end -->
 
 ## Usage example
 

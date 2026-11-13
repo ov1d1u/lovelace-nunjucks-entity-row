@@ -13,6 +13,18 @@ function textColor(value: unknown): string | undefined {
   return color && color !== "none" ? computeCssColor(color) : undefined;
 }
 
+function isTrue(value: unknown): boolean {
+  return value === true || String(value).trim().toLowerCase() === "true";
+}
+
+/** Parse a progress percent; returns undefined when the value is not numeric. */
+function progressPercent(value: unknown): number | undefined {
+  if (typeof value === "boolean" || value === null || value === undefined) return undefined;
+  const number = typeof value === "number" ? value : parseFloat(String(value).trim());
+  if (!Number.isFinite(number)) return undefined;
+  return Math.min(100, Math.max(0, number));
+}
+
 class NunjucksEntityRow extends LitElement {
   @property() _config;
   @property() hass;
@@ -115,11 +127,8 @@ class NunjucksEntityRow extends LitElement {
     config.tap_action = this._actionConfig();
     config.hold_action = this._actionConfig("", "hold");
     config.double_tap_action = this._actionConfig("", "double_tap");
-    // A tap on the secondary area is either on `div.secondary` or `div.secondary state-display`
-    if (
-      this._infoActionElement?.classList.contains("secondary") || 
-      this._infoActionElement?.parentElement?.classList.contains("secondary")
-    ) {
+    // A tap on the secondary area is on `div.secondary` or any of its descendants
+    if (this._infoActionElement?.closest?.(".secondary")) {
       config.entity = this._actionEntity("secondary");
     } else {
       config.entity = this._actionEntity();
@@ -304,6 +313,8 @@ class NunjucksEntityRow extends LitElement {
     const has_action = this._hasAction();
     const has_icon_action = this._hasAction("icon");
     const has_state_action = this._hasAction("state");
+    const show_state_progress = isTrue(this.config.state_progress);
+    const secondaryProgress = progressPercent(this.config.secondary_progress);
 
     return html`
       <hui-generic-entity-row class="probe" aria-hidden="true"></hui-generic-entity-row>
@@ -324,8 +335,20 @@ class NunjucksEntityRow extends LitElement {
           @action="${this._infoActionHandler}"
         >
           ${name}
-          <div class="secondary" style=${styleMap({ color: textColor(this.config.secondary_color) })}>
-            ${secondaryIsText
+          <div
+            class=${classMap({ secondary: true, progress: secondaryProgress !== undefined })}
+            style=${styleMap({ color: textColor(this.config.secondary_color) })}
+          >
+            ${secondaryProgress !== undefined
+              ? html`<div
+                  class="progress-bar"
+                  role="progressbar"
+                  aria-valuemin="0"
+                  aria-valuemax="100"
+                  aria-valuenow=${secondaryProgress}
+                  style=${styleMap({ "--progress-color": textColor(this.config.secondary_progress_color) })}
+                ><div class="progress-fill" style=${styleMap({ width: `${secondaryProgress}%` })}></div></div>`
+              : secondaryIsText
               ? this.config.secondary
               : this.config.secondary !== undefined
                 ? html`<state-display
@@ -344,7 +367,14 @@ class NunjucksEntityRow extends LitElement {
           class=${classMap({ state: true, pointer: !show_toggle && !show_button && has_state_action })}
           style=${styleMap({ color: !show_toggle && !show_button ? textColor(this.config.state_color) : undefined })}
         >
-          ${show_toggle
+          ${show_state_progress
+            ? html`<svg
+                class="progress-spinner"
+                role="progressbar"
+                viewBox="0 0 20 20"
+                style=${styleMap({ "--progress-color": textColor(this.config.state_progress_color) })}
+              ><circle cx="10" cy="10" r="8"></circle></svg>`
+            : show_toggle
             ? html`<ha-entity-toggle .hass=${this.hass} .stateObj=${entity}>
               </ha-entity-toggle>`
             : show_button
@@ -398,6 +428,54 @@ class NunjucksEntityRow extends LitElement {
         }
         #wrapper.hidden {
           display: none;
+        }
+        .secondary.progress {
+          /* Keep exactly one line of height so the row size does not change. */
+          height: 20px;
+          height: 1lh;
+          display: flex;
+          align-items: center;
+        }
+        .progress-bar {
+          flex: 1;
+          height: 4px;
+          border-radius: 2px;
+          overflow: hidden;
+          background-color: var(--divider-color, rgba(127, 127, 127, 0.3));
+          background-color: color-mix(in srgb, var(--progress-color, var(--primary-color)) 25%, transparent);
+        }
+        .progress-fill {
+          height: 100%;
+          border-radius: inherit;
+          background-color: var(--progress-color, var(--primary-color));
+          transition: width 0.3s ease;
+        }
+        .progress-spinner {
+          display: block;
+          width: 20px;
+          height: 20px;
+          margin-inline-start: auto;
+          animation: progress-rotate 1.4s linear infinite;
+        }
+        .progress-spinner circle {
+          fill: none;
+          stroke: var(--progress-color, var(--primary-color));
+          stroke-width: 2.5;
+          stroke-linecap: round;
+          stroke-dasharray: 36 51;
+        }
+        @keyframes progress-rotate {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .progress-spinner {
+            animation-duration: 4s;
+          }
+          .progress-fill {
+            transition: none;
+          }
         }
         hui-generic-entity-row.probe {
           display: none !important;

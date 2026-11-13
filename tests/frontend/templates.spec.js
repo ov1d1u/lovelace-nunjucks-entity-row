@@ -402,3 +402,145 @@ test('omitting or clearing time_format restores the default state display', asyn
     { nativeDisplay: false, text: 'Localized off' },
   ]);
 });
+
+async function progressState(page) {
+  return page.evaluate(() => {
+    const root = window.row.shadowRoot;
+    const bar = root.querySelector('.secondary .progress-bar');
+    const spinner = root.querySelector('.state .progress-spinner');
+    const style = (element, selector) => element && getComputedStyle(element.querySelector(selector) ?? element);
+    return {
+      bar: bar ? {
+        value: bar.getAttribute('aria-valuenow'), width: root.querySelector('.progress-fill').style.width,
+        color: style(bar, '.progress-fill').backgroundColor,
+      } : null,
+      spinner: spinner ? { color: getComputedStyle(spinner.querySelector('circle')).stroke } : null,
+      secondaryText: root.querySelector('.secondary').textContent.trim(),
+      stateText: root.querySelector('.state').textContent.trim(),
+      toggle: !!root.querySelector('ha-entity-toggle'), button: !!root.querySelector('ha-button'),
+    };
+  });
+}
+
+test('secondary progress replaces the secondary line, clamps values and falls back for non-numbers', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary: 'Details' });
+    row.style.cssText = '--primary-color: rgb(1, 2, 3); --amber-color: rgb(255, 193, 7)';
+  });
+  expect(await progressState(page)).toMatchObject({ bar: null, secondaryText: 'Details' });
+  for (const [value, expected] of [[42, '42'], ['12.5', '12.5'], ['-10', '0'], [150, '100'], [' 70 % ', '70']]) {
+    await page.evaluate(async (value) => {
+      window.row.setConfig({ entity: 'light.test', secondary: 'Details', secondary_progress: value });
+      await window.row.updateComplete;
+    }, value);
+    expect(await progressState(page)).toMatchObject({
+      bar: { value: expected, width: `${expected}%`, color: 'rgb(1, 2, 3)' }, secondaryText: '' });
+  }
+  for (const value of [undefined, '', '   ', 'abc', null, true, false]) {
+    await page.evaluate(async (value) => {
+      window.row.setConfig({ entity: 'light.test', secondary: 'Details', secondary_progress: value });
+      await window.row.updateComplete;
+    }, value);
+    expect(await progressState(page)).toMatchObject({ bar: null, secondaryText: 'Details' });
+  }
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', secondary_progress: 10, secondary_progress_color: ' amber ' });
+    await window.row.updateComplete;
+  });
+  expect((await progressState(page)).bar.color).toBe('rgb(255, 193, 7)');
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', secondary_progress: 10, secondary_progress_color: 'none' });
+    await window.row.updateComplete;
+  });
+  expect((await progressState(page)).bar.color).toBe('rgb(1, 2, 3)');
+});
+
+test('state progress spinner replaces the state, toggles and buttons and uses its color', async ({ page }) => {
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', state_display: 'Custom state' });
+    row.style.cssText = '--primary-color: rgb(1, 2, 3); --amber-color: rgb(255, 193, 7)';
+  });
+  expect(await progressState(page)).toMatchObject({ spinner: null, stateText: 'Custom state' });
+  for (const control of [{}, { toggle: true }, { button: 'Press' }]) {
+    for (const [value, shown] of [[true, true], ['true', true], [false, false], ['', false], [undefined, false]]) {
+      await page.evaluate(async ({ control, value }) => {
+        window.row.setConfig({ entity: 'light.test', state_display: 'Custom state', state_progress: value, ...control });
+        await window.row.updateComplete;
+      }, { control, value });
+      const state = await progressState(page);
+      expect(!!state.spinner).toBe(shown);
+      expect(state.toggle).toBe(!shown && !!control.toggle);
+      expect(state.button).toBe(!shown && !!control.button);
+      if (!control.toggle && !control.button) expect(state.stateText).toBe(shown ? '' : 'Custom state');
+    }
+  }
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', state_progress: true });
+    await window.row.updateComplete;
+  });
+  expect((await progressState(page)).spinner.color).toBe('rgb(1, 2, 3)');
+  await page.evaluate(async () => {
+    window.row.setConfig({ entity: 'light.test', state_progress: true, state_progress_color: 'amber' });
+    await window.row.updateComplete;
+  });
+  expect((await progressState(page)).spinner.color).toBe('rgb(255, 193, 7)');
+});
+
+test('progress templates update on hass changes and minute refreshes', async ({ page }) => {
+  await page.clock.install();
+  await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test',
+      state_progress: "{{ is_state(config.entity, 'on') }}",
+      state_progress_color: "{{ 'amber' if is_state(config.entity, 'on') else 'none' }}",
+      secondary_progress: "{{ (state_attr(config.entity, 'brightness') / 255 * 100) | round }}",
+      secondary_progress_color: "{{ '#123456' if is_state(config.entity, 'on') else 'none' }}" });
+    row.style.cssText = '--primary-color: rgb(1, 2, 3); --amber-color: rgb(255, 193, 7)';
+  });
+  expect(await page.evaluate(() => window.row._refreshTimer !== undefined &&
+    ['state_progress', 'state_progress_color', 'secondary_progress', 'secondary_progress_color'].every((key) =>
+      window.templates.hasConfigurationTemplates({ [key]: '{{ now() }}' })))).toBe(true);
+  expect(await progressState(page)).toMatchObject({ spinner: null, bar: { value: '50', color: 'rgb(1, 2, 3)' } });
+  await page.evaluate(async () => { window.row.hass = window.makeHass('on'); await window.row.updateComplete; });
+  expect(await progressState(page)).toMatchObject({ spinner: { color: 'rgb(255, 193, 7)' }, bar: { value: '50', color: 'rgb(18, 52, 86)' } });
+  await page.evaluate(() => { window.row.hass.states['light.test'].attributes.brightness = 255; });
+  await page.clock.fastForward(60_000);
+  expect((await progressState(page)).bar.value).toBe('100');
+});
+
+test('progress bar and spinner keep the row height of a standard row', async ({ page }) => {
+  const heights = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test' });
+    row.style.cssText = 'display: block; width: 300px; font-size: 14px; line-height: 20px';
+    const heights = {};
+    for (const [key, config] of Object.entries({
+      plain: {}, secondary: { secondary: 'Details' },
+      progress: { secondary_progress: 40, state_progress: true },
+      both: { secondary: 'Details', secondary_progress: 40, state_progress: true },
+    })) {
+      row.setConfig({ entity: 'light.test', ...config });
+      await row.updateComplete;
+      heights[key] = row.shadowRoot.querySelector('#wrapper').getBoundingClientRect().height;
+      if (config.secondary_progress !== undefined) {
+        heights[`${key}Secondary`] = row.shadowRoot.querySelector('.secondary').getBoundingClientRect().height;
+      }
+    }
+    return heights;
+  });
+  expect(heights.progress).toBe(heights.secondary);
+  expect(heights.both).toBe(heights.secondary);
+  expect(heights.plain).toBe(heights.secondary);
+  expect(heights.progressSecondary).toBe(20);
+});
+
+test('taps on the progress bar use the secondary action entity', async ({ page }) => {
+  const entity = await page.evaluate(async () => {
+    const row = await window.mountRow({ entity: 'light.test', secondary_action_entity: 'sensor.other',
+      secondary_progress: 30, tap_action: { action: 'more-info' } });
+    let action;
+    row.addEventListener('hass-action', (event) => { action = event.detail; });
+    row._infoActionListener({ target: row.shadowRoot.querySelector('.progress-fill') });
+    row._infoActionHandler({ detail: { action: 'tap' } });
+    return action.config.entity;
+  });
+  expect(entity).toBe('sensor.other');
+});

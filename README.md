@@ -61,6 +61,10 @@ entities:
 | `primary_color` | string | color token<br>CSS color | Sets the entity name color. Supports Home Assistant color tokens, CSS colors, and Nunjucks templates. Omitted, empty, whitespace-only, or `none` uses the theme default. Applies regardless of entity activity; `state` coloring is not supported. The state text on the right is unaffected. |
 | `secondary_color` | string | color token<br>CSS color | Sets the secondary line color for both text and secondary lists. Accepts the same values as `primary_color`; defaults to the theme secondary text color independently of `primary_color`. |
 | `state_color` | string / boolean | color token<br>CSS color | Sets the state text color on the right, including `state_display`. String values accept the same colors and Nunjucks templates as `primary_color`, apply regardless of entity activity, and leave the icon color unchanged. Omitted, empty, whitespace-only, or `none` uses the theme default. Does not color toggles or buttons. Legacy booleans still control the icon: `true` means `color: state`, and `false` means `color: none`, unless `color` is explicitly set. |
+| `state_progress` | boolean | `true` / `false` | If this evaluates to `true`, a spinning progress circle replaces the state on the right, including `toggle` and `button` while it is shown. See [Progress indicators](#progress-indicators). |
+| `state_progress_color` | string | color token<br>CSS color | Sets the color of the `state_progress` spinner. Accepts the same values as `primary_color`; defaults to the theme primary color. |
+| `secondary_progress` | number | `0` – `100` | If this evaluates to a number, a progress bar filled to that percent replaces the secondary line. Values are clamped to `0`–`100`; empty or non-numeric values show `secondary` as usual. See [Progress indicators](#progress-indicators). |
+| `secondary_progress_color` | string | color token<br>CSS color | Sets the color of the `secondary_progress` bar. The track uses a faded version of the same color. Accepts the same values as `primary_color`; defaults to the theme primary color. |
 | `tap_action`<br>`hold_action`<br>`double_tap_action` | object | Action config | Primary actions. See [Actions](#actions). |
 | `action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action`. See [Actions](#actions) |
 | `secondary_action_entity` | string | - | If set, overrides the entity id used for `tap_action`, `hold_action` and `double_tap_action` when the action is executed on the `secondary` area. This allows the primary actions (e.g. `more-info`, `toggle`) to target the main entity while the `secondary` area targets a different entity. If not set then will default to `secondary_entity` if set, otherwise `entity`. See [Actions](#actions) |
@@ -81,6 +85,21 @@ state_color: "{{ 'green' if is_state(config.entity, 'on') else 'red' }}"
 ```
 
 CSS values such as `rgb(255, 128, 0)` and `var(--accent-color)` are also supported.
+
+### Progress indicators
+
+`state_progress` shows an indeterminate spinner instead of the state, and `secondary_progress` shows a progress bar instead of the secondary line. Both options and their colors can be templated, and the row keeps the same height as a standard entity row.
+
+```yaml
+type: custom:nunjucks-entity-row
+entity: sensor.washer
+state_progress: "{{ is_state(config.entity, 'running') }}"
+state_progress_color: amber
+secondary_progress: "{{ state_attr(config.entity, 'progress') }}"
+secondary_progress_color: "{{ 'green' if is_state(config.entity, 'done') else 'primary' }}"
+```
+
+Taps on the progress bar run the secondary area actions (see `secondary_action_entity` in [Actions](#actions)). While the spinner is shown, it is not interactive if `toggle` or `button` is set.
 
 ## Templates and migration
 

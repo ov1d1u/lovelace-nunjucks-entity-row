@@ -9,6 +9,7 @@ const OPTIONS = new Set([
   "action_entity", "secondary_entity", "secondary_action_entity",
   "icon_action_entity", "state_action_entity", "color_inactive", "time_format",
   "primary_color", "secondary_color", "state_color",
+  "state_progress", "state_progress_color", "secondary_progress", "secondary_progress_color",
 ]);
 const STRUCTURED = new Set(["name", "secondary_name", "secondary", "time_format"]);
 const isTemplate = (value: unknown): value is string =>

@@ -1,0 +1,36 @@
+id: progress
+description: Secondary progress bars keep the height of standard entity rows
+view_path: progress
+
+setup:
+  - type: ha_service
+    domain: input_number
+    service: set_value
+    data:
+      entity_id: input_number.test_number
+      value: 40
+    settle_ms: 50
+
+# The state spinner animates continuously, so it is covered by the frontend
+# tests instead of a pixel snapshot.
+card:
+  type: entities
+  title: Progress
+  entities:
+    - entity: input_number.test_number
+      type: simple-entity
+    - type: custom:nunjucks-entity-row
+      entity: input_number.test_number
+      secondary_progress: "{{ states(config.entity) }}"
+    - type: custom:nunjucks-entity-row
+      entity: input_number.test_number
+      secondary_progress: "{{ states(config.entity) | float * 2 }}"
+      secondary_progress_color: "{{ 'green' if states(config.entity) | float > 30 else 'red' }}"
+    - type: custom:nunjucks-entity-row
+      entity: input_number.test_number
+      secondary: Plain secondary text
+
+assertions:
+  - type: snapshot
+    name: 10_progress
+    threshold: 0.01

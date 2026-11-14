@@ -1,6 +1,6 @@
 # lovelace-nunjucks-entity-row
 
-Based on [Lint-Free-Technology/lovelace-template-entity-row](https://github.com/Lint-Free-Technology/lovelace-template-entity-row), originally forked from [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) to continue development of the stalled project.
+Based on [Lint-Free-Technology/lovelace-template-entity-row](https://github.com/Lint-Free-Technology/lovelace-template-entity-row), originally forked from [thomasloven/lovelace-template-entity-row](https://github.com/thomasloven/lovelace-template-entity-row) to continue development of the stalled project. Note that this fork is meant for my personal usage. I don't mind if you use it, but new specific features might be added according to my needs. 
 
 Display whatever you want in an entities card row.
 
